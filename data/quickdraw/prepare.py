@@ -16,6 +16,7 @@ warnings.filterwarnings(
 )
 
 block_size = 256
+data_dir = './data/quickdraw/data/'
 # quickdraw gs 
 bucket = 'quickdraw_dataset'
 prefix = 'full/simplified/'
@@ -42,9 +43,8 @@ patterns = [
     "*wine bottle.ndjson",
     "*axe.ndjson",
     "*streetlight.ndjson",
-] # *.ndjson
-data_dir = './data/quickdraw/data/'
-region_size = 256 # the size of simplified canvas is 256x256 region
+] # provide just "*.ndjson" pattern for all files 
+region_size = 256 # the size of the simplified canvas region is 256x256
 
 def _list_files(client: Client): 
     blobs = client.list_blobs(bucket, prefix=prefix)
