@@ -1,10 +1,10 @@
 """
 how tokenizer is defined:
-1. the simplified drawing files (*.ndjson) present positioned and scaled draws data into a 256x256 region; 
-2. we quantize the 256x256 region to 64x64: qn = n * 64 // 256; 
+1. the simplified drawing files (*.ndjson) stores drawings as positioned and scaled data into a 256x256 region; 
+2. we quantize the 256x256 region into a 64x64 region: qn = n * 64 // 256; 
 3. we encode the strokes information as one token per point: token = qy * 64 + qx;
 4. therefore the strokes vocab is 4095=63*64+63; 
-5. we add 3 special tokens: <|draw|> <|stroke|> <|endoftext|>  
+5. we add 3 special tokens: <|draw|>, <|stroke|>, <|endoftext|>  
 6. therefore the whole vocab is 4098.
 """
 _SIZE = 64
@@ -15,6 +15,7 @@ _SPECIAL_TOKENS = [
     '<|endoftext|>'
 ] 
 _VOCAB_SIZE = _STROKES_VOCAB + len(_SPECIAL_TOKENS)
+PAD_ID = _VOCAB_SIZE # basically <|endoftext|> 
 
 def q(n: int, max: int) -> int: 
     return n * _SIZE // max
