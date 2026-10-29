@@ -15,7 +15,7 @@ warnings.filterwarnings(
     message=".*end user credentials from Google Cloud SDK.*",
 )
 
-block_size = 256
+block_size = 512
 data_dir = './data/quickdraw/data/'
 # quickdraw gs 
 bucket = 'quickdraw_dataset'
@@ -56,7 +56,8 @@ def _download(client: Client) -> list[dict]:
     jsons = []
     for blob in tqdm(_list_files(client)):
         path = data_dir + blob.split('/')[-1]
-        client.bucket(bucket).blob(blob).download_to_filename(path)
+        if not os.path.exists(path): # this should probably work? TODO check later
+            client.bucket(bucket).blob(blob).download_to_filename(path)
         jsons = jsons + _read_jsonl(path)
     return jsons
 
