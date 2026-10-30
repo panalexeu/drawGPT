@@ -225,6 +225,7 @@ class GPT(nn.Module):
     def gen_iter(self, idx: torch.tensor, max_new_tokens: int, stop_tokens: list[int], temperature: float = 1.0, top_k: int | None = None) -> Iterator: 
         for _ in range(max_new_tokens):
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
+            if idx_cond[:, -1] in stop_tokens: break
             logits, _ = self(idx_cond)
             logits = logits[:, -1, :] / temperature
             if top_k is not None:
@@ -232,7 +233,6 @@ class GPT(nn.Module):
                 logits[logits < v[:, [-1]]] = -float('Inf')
             probs = F.softmax(logits, dim=-1)
             idx_next = torch.multinomial(probs, num_samples=1)
-            if idx_next in stop_tokens: break
             idx = torch.cat((idx, idx_next), dim=1)
             yield idx
     

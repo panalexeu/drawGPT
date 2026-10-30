@@ -1,3 +1,5 @@
+import os 
+import time 
 import json
 from contextlib import nullcontext
 
@@ -21,19 +23,33 @@ device = 'cuda'
 dtype = 'bfloat16'
 compile = False
 
-def _draw(tokens: list[int]):
+def _draw(tokens: list[int], save_fig: bool = False, out_dir: str = './doodles'):
     tokens = decode(tokens)
     img = Image.new('L', (size, size), 0)
     draw = ImageDraw.Draw(img)
 
+    frames = []
     prev = None
     for token in tokens:
-        if token in  SPECIAL_TOKENS: 
-            continue 
-        if prev is not None: 
+        if token == '<|endoftext|>':
+            break
+        if token in SPECIAL_TOKENS:          # <|stroke|> / <|draw|>: lift the pen
+            prev = None
+            continue
+        if prev is not None:
             draw.line([prev, token], fill=255, width=width)
+            if save_fig:
+                frames.append(img.copy())
         prev = token
-    img.show()
+
+    if save_fig and frames:
+        os.makedirs(out_dir, exist_ok=True)
+        name = time.strftime('%Y%m%d-%H%M%S')
+        durations = [40] * (len(frames) - 1) + [1500]   # hold the finished drawing
+        frames[0].save(os.path.join(out_dir, f'{name}.gif'), save_all=True,
+                       append_images=frames[1:], duration=durations, loop=0)
+
+    return img
 
 if __name__ == '__main__': 
     # torch stuff init 
@@ -70,4 +86,5 @@ if __name__ == '__main__':
                 token = idx.squeeze(0).tolist()[i] # squeeze batch back
                 print(*decode(token), end='', flush=True)
             print()
-            _draw(idx.squeeze(0).tolist())
+            img = _draw(idx.squeeze(0).tolist(), save_fig=True)
+            img.show()
