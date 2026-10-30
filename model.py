@@ -107,13 +107,15 @@ class Block(nn.Module):
 
 @dataclass
 class GPTConfig:
-    block_size: int = 1024
-    vocab_size: int = 50304 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
-    n_layer: int = 12
-    n_head: int = 12
-    n_embd: int = 768
+    block_size: int = 512
+    vocab_size: int = 4099 # GPT-2 vocab_size of 50257, padded up to nearest multiple of 64 for efficiency
+    word_vocab_size: int = 32
+    n_layer: int = 6
+    n_head: int = 6
+    w_embd: int = 384
+    n_embd: int = 384
     dropout: float = 0.0
-    bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+    bias: bool = False # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
 
 class GPT(nn.Module):
 
@@ -124,19 +126,18 @@ class GPT(nn.Module):
         self.config = config
 
         self.transformer = nn.ModuleDict(dict(
-            wte = nn.Embedding(config.vocab_size, config.n_embd),
-            wpe = nn.Embedding(config.block_size, config.n_embd),
+            de  = nn.Embedding(config.vocab_size, config.n_embd),       # drawing tokens
+            pe  = nn.Embedding(config.block_size, config.n_embd),       # positions
+            we  = nn.Embedding(config.word_vocab_size, config.w_embd),  # words (frozen BGE)
+            word_proj = nn.Linear(config.w_embd, config.n_embd, bias=config.bias),
             drop = nn.Dropout(config.dropout),
-            h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
+            h    = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = LayerNorm(config.n_embd, bias=config.bias),
         ))
+        # weight tying wte shares weights with lm_head 
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-        # with weight tying when using torch.compile() some warnings get generated:
-        # "UserWarning: functional_call was passed multiple values for tied weights.
-        # This behavior is deprecated and will be an error in future versions"
-        # not 100% sure what this is, so far seems to be harmless. TODO investigate
-        self.transformer.wte.weight = self.lm_head.weight # https://paperswithcode.com/method/weight-tying
-
+        self.transformer.wte.weight = self.lm_head.weight
+        
         # init all weights
         self.apply(self._init_weights)
         # apply special scaled init to the residual projections, per GPT-2 paper
@@ -147,16 +148,8 @@ class GPT(nn.Module):
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
 
-    def get_num_params(self, non_embedding=True):
-        """
-        Return the number of parameters in the model.
-        For non-embedding count (default), the position embeddings get subtracted.
-        The token embeddings would too, except due to the parameter sharing these
-        params are actually used as weights in the final layer, so we include them.
-        """
+    def get_num_params(self):
         n_params = sum(p.numel() for p in self.parameters())
-        if non_embedding:
-            n_params -= self.transformer.wpe.weight.numel()
         return n_params
 
     def _init_weights(self, module):
@@ -174,9 +167,10 @@ class GPT(nn.Module):
         pos = torch.arange(0, t, dtype=torch.long, device=device) # shape (t)
 
         # forward the GPT model itself
-        tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
-        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
-        x = self.transformer.drop(tok_emb + pos_emb)
+        word = self.transformer.word_proj(self.transformer.we(idx[:, :1]))   # (B, 1, n_embd)
+        draw = self.transformer.de(idx[:, 1:])                               # (B, T-1, n_embd)
+        x = torch.cat([word, draw], dim=1) + self.transformer.pe(pos)
+        x = self.transformer.drop(x)
         for block in self.transformer.h:
             x = block(x)
         x = self.transformer.ln_f(x)
@@ -328,3 +322,16 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         return idx
+    
+    @torch.no_grad()
+    def init_word_embed(self, word_vocab: dict[str, int]):
+        from transformers import AutoTokenizer, AutoModel
+        tok = AutoTokenizer.from_pretrained("BAAI/bge-small-en-v1.5")
+        enc = AutoModel.from_pretrained("BAAI/bge-small-en-v1.5").eval()
+
+        w = self.transformer.we.weight
+        for word, i in word_vocab.items():
+            h = enc(**tok(word, return_tensors='pt')).last_hidden_state   # (1, T, 384)
+            w[i] = h[0].mean(0).to(w.device, w.dtype)                     # mean over subword tokens
+        breakpoint()
+        w.requires_grad_(False)                                           # freeze
