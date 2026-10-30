@@ -9,6 +9,6 @@ the training loss reached around 4.5-5.
 
 samples were generated with top_k=64 and temperature=1.0.
 
-below is the first sample for each class from my first experiment, which is really fun: 
+below is the first sample for each class from my first experiment, which is really fun (hover over an image to see its class): 
 
 ![axe](./doodles/0/axe.gif) ![canoe](./doodles/0/canoe.gif) ![circle](./doodles/0/circle.gif) ![door](./doodles/0/door.gif) ![fork](./doodles/0/fork.gif) ![hexagon](./doodles/0/hexagon.gif) ![ladder](./doodles/0/ladder.gif) ![leg](./doodles/0/leg.gif) ![line](./doodles/0/line.gif) ![lipstick](./doodles/0/lipstick.gif) ![mountain](./doodles/0/mountain.gif) ![pear](./doodles/0/pear.gif) ![pillow](./doodles/0/pillow.gif) ![shovel](./doodles/0/shovel.gif) ![spoon](./doodles/0/spoon.gif) ![square](./doodles/0/square.gif) ![stairs](./doodles/0/stairs.gif) ![streetlight](./doodles/0/streetlight.gif) ![swing_set](./doodles/0/swing_set.gif) ![triangle](./doodles/0/trinagle.gif) ![wine_bottle](./doodles/0/wine_bottle.gif) ![zigzag](./doodles/0/zigzag.gif)
