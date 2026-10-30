@@ -1,14 +1,7 @@
-"""
-Full definition of a GPT Language Model, all of it in this single file.
-References:
-1) the official GPT-2 TensorFlow implementation released by OpenAI:
-https://github.com/openai/gpt-2/blob/master/src/model.py
-2) huggingface/transformers PyTorch implementation:
-https://github.com/huggingface/transformers/blob/main/src/transformers/models/gpt2/modeling_gpt2.py
-"""
-
+# TODO update architecture to pass unseen embeddings 
 import math
 import inspect
+from typing import Iterator 
 from dataclasses import dataclass
 
 import torch
@@ -254,6 +247,21 @@ class GPT(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
 
         return idx
+
+    @torch.no_grad() 
+    def gen_iter(self, idx: torch.tensor, max_new_tokens: int, stop_tokens: list[int], temperature: float = 1.0, top_k: int | None = None) -> Iterator: 
+        for _ in range(max_new_tokens):
+            idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
+            logits, _ = self(idx_cond)
+            logits = logits[:, -1, :] / temperature
+            if top_k is not None:
+                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+                logits[logits < v[:, [-1]]] = -float('Inf')
+            probs = F.softmax(logits, dim=-1)
+            idx_next = torch.multinomial(probs, num_samples=1)
+            if idx_next in stop_tokens: break
+            idx = torch.cat((idx, idx_next), dim=1)
+            yield idx
     
     @torch.no_grad()
     def init_word_embed(self, word_vocab: dict[str, int]):

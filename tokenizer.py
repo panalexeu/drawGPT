@@ -10,12 +10,12 @@ how tokenizer is defined:
 """
 _SIZE = 64
 _STROKES_VOCAB = (_SIZE-1)*_SIZE + _SIZE-1
-_SPECIAL_TOKENS = [
+SPECIAL_TOKENS = [
     '<|draw|>',
     '<|stroke|>',
     '<|endoftext|>'
 ] 
-VOCAB_SIZE = _STROKES_VOCAB + len(_SPECIAL_TOKENS) + 1
+VOCAB_SIZE = _STROKES_VOCAB + len(SPECIAL_TOKENS) + 1
 PAD_ID = VOCAB_SIZE-1 # basically <|endoftext|> 
 
 def q(n: int, max: int) -> int: 
@@ -27,7 +27,7 @@ def encode_point(point: tuple[int]) -> int:
     return qy * _SIZE + qx
 
 def encode_special(val: str) -> int:  
-    return _STROKES_VOCAB + _SPECIAL_TOKENS.index(val) + 1
+    return _STROKES_VOCAB + SPECIAL_TOKENS.index(val) + 1
 
 def encode(seq: list[tuple[int] | str]) -> list[int]: 
     tokens = []
@@ -37,7 +37,11 @@ def encode(seq: list[tuple[int] | str]) -> list[int]:
         tokens.append(enc(el))
     return tokens 
 
-def decode(tokens: list[int]) -> list[tuple[int] | str]: 
+def decode(tokens: list[int] | int) -> list[tuple[int] | str]: 
+    # only one token was passed => wrap it into list 
+    if isinstance(tokens, int): 
+        tokens = [tokens]
+    
     seq = []
     for token in tokens: 
         if token <= _STROKES_VOCAB: 
@@ -45,7 +49,7 @@ def decode(tokens: list[int]) -> list[tuple[int] | str]:
             y = token // _SIZE
             dec = (x,y)
         else: 
-            dec = _SPECIAL_TOKENS[token - _STROKES_VOCAB - 1]
+            dec = SPECIAL_TOKENS[token - _STROKES_VOCAB - 1]
         seq.append(dec)
     return seq 
 
