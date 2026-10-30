@@ -126,17 +126,17 @@ class GPT(nn.Module):
         self.config = config
 
         self.transformer = nn.ModuleDict(dict(
-            de  = nn.Embedding(config.vocab_size, config.n_embd),       # drawing tokens
-            pe  = nn.Embedding(config.block_size, config.n_embd),       # positions
-            we  = nn.Embedding(config.word_vocab_size, config.w_embd),  # words (frozen BGE)
-            word_proj = nn.Linear(config.w_embd, config.n_embd, bias=config.bias), # words (frozen BGE) projection
+            de  = nn.Embedding(config.vocab_size, config.n_embd),       # drawing embeddings
+            pe  = nn.Embedding(config.block_size, config.n_embd),       # position embeddings
+            we  = nn.Embedding(config.word_vocab_size, config.w_embd),  # word embeddings (frozen BGE)
+            word_proj = nn.Linear(config.w_embd, config.n_embd, bias=config.bias), # word embeddings projection onto models hidden_dim
             drop = nn.Dropout(config.dropout),
             h    = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = LayerNorm(config.n_embd, bias=config.bias),
         ))
-        # weight tying wte shares weights with lm_head 
+        # weight tying de shares weights with lm_head 
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-        self.transformer.wte.weight = self.lm_head.weight
+        self.transformer.de.weight = self.lm_head.weight
         
         # init all weights
         self.apply(self._init_weights)
@@ -265,4 +265,6 @@ class GPT(nn.Module):
         for word, i in word_vocab.items():
             h = enc(**tok(word, return_tensors='pt')).last_hidden_state   # (1, T, 384)
             w[i] = h[0].mean(0).to(w.device, w.dtype)                     # mean over subword tokens
+            breakpoint()
         w.requires_grad_(False)                                           # freeze
+    
