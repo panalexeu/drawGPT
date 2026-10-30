@@ -265,6 +265,5 @@ class GPT(nn.Module):
         for word, i in word_vocab.items():
             h = enc(**tok(word, return_tensors='pt')).last_hidden_state   # (1, T, 384)
             w[i] = h[0].mean(0).to(w.device, w.dtype)                     # mean over subword tokens
-            breakpoint()
         w.requires_grad_(False)                                           # freeze
     
