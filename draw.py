@@ -10,9 +10,9 @@ from tokenizer import PAD_ID, decode, SPECIAL_TOKENS
 seed = 2004 
 size = 64
 width = 3 
-max_new_tokens = 512
-temperature = 1.0 
-top_k = None
+max_new_tokens = 256
+temperature = 1.0
+top_k = 64
 stop_tokens = [PAD_ID]
 word_vocab_path = './data/quickdraw/vocab.json'
 word_vocab = json.load(open(word_vocab_path, 'r'))
