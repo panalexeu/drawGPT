@@ -5,7 +5,8 @@ how tokenizer is defined:
 3. we encode the strokes information as one token per point: token = qy * 64 + qx;
 4. therefore the strokes vocab is 4095=63*64+63; 
 5. we add 3 special tokens: <|draw|>, <|stroke|>, <|endoftext|>  
-6. therefore the whole vocab is 4098.
+6. therefore the <|endoftext|> is 4098.
+7. and the whole vocab size is 4099
 """
 _SIZE = 64
 _STROKES_VOCAB = (_SIZE-1)*_SIZE + _SIZE-1
@@ -14,8 +15,8 @@ _SPECIAL_TOKENS = [
     '<|stroke|>',
     '<|endoftext|>'
 ] 
-_VOCAB_SIZE = _STROKES_VOCAB + len(_SPECIAL_TOKENS)
-PAD_ID = _VOCAB_SIZE # basically <|endoftext|> 
+VOCAB_SIZE = _STROKES_VOCAB + len(_SPECIAL_TOKENS) + 1
+PAD_ID = VOCAB_SIZE-1 # basically <|endoftext|> 
 
 def q(n: int, max: int) -> int: 
     return n * _SIZE // max
@@ -52,6 +53,6 @@ if __name__ == '__main__':
     seq = ['<|draw|>', (0, 0), (63, 63), '<|stroke|>', (32, 0), (0, 32), '<|stroke|>', (5, 6), (7, 8), '<|stroke|>', '<|endoftext|>']
     seq_enc = encode(seq) 
     seq_dec = decode(seq_enc)
-    print(f'size: {_VOCAB_SIZE}')
+    print(f'size: {VOCAB_SIZE}')
     assert seq == seq_dec
     
